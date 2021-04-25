@@ -2,7 +2,7 @@ use cursive::traits::*;
 use cursive::views::{Dialog, EditView};
 use cursive::Cursive;
 
-pub const TITLE: &str = "Setup User";
+pub const TITLE: &str = "Setup user";
 
 pub fn setup(siv: &mut Cursive) {
     username(siv);

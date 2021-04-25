@@ -6,6 +6,7 @@ use cursive::views::{Dialog, OnEventView, SelectView};
 use cursive::Cursive;
 use std::env;
 
+pub mod host;
 pub mod power;
 pub mod user;
 
@@ -69,7 +70,13 @@ pub fn show_main_menu(siv: &mut Cursive) {
     // TODO: Check if /etc/nixos is setup and valid
     // TODO: Check if /nix/store is setup and valid
     // TODO: All optional steps are only optional if you set --skip-forced?
-    let content = [crate::user::TITLE, "", crate::power::TITLE].join("\n");
+    let content = [
+        crate::user::TITLE,
+        crate::host::TITLE,
+        "",
+        crate::power::TITLE,
+    ]
+    .join("\n");
     select.add_all_str(content.lines());
 
     // Sets the callback for when "Enter" is pressed.
@@ -77,11 +84,11 @@ pub fn show_main_menu(siv: &mut Cursive) {
 
     // Let's override the `j` and `k` keys for navigation
     let select = OnEventView::new(select)
-        .on_pre_event_inner('k', |s, _| {
+        .on_pre_event_inner('i', |s, _| {
             let cb = s.select_up(1);
             Some(EventResult::Consumed(Some(cb)))
         })
-        .on_pre_event_inner('j', |s, _| {
+        .on_pre_event_inner('k', |s, _| {
             let cb = s.select_down(1);
             Some(EventResult::Consumed(Some(cb)))
         });
@@ -111,6 +118,9 @@ fn execute_selection(siv: &mut Cursive, title: &str) {
         }
         crate::power::TITLE => {
             crate::power::reboot(siv);
+        }
+        crate::host::TITLE => {
+            crate::host::setup(siv);
         }
         _ => {}
     }
