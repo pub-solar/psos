@@ -8,6 +8,7 @@ use std::env;
 
 pub mod host;
 pub mod power;
+pub mod text_input;
 pub mod user;
 
 pub type Callback = fn();
