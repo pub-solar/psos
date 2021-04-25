@@ -2,45 +2,62 @@ use cursive::align::HAlign;
 use cursive::event::EventResult;
 use cursive::traits::*;
 use cursive::view::Margins;
-use cursive::views::{Dialog, OnEventView, SelectView, TextView};
+use cursive::views::{Dialog, OnEventView, SelectView};
 use cursive::Cursive;
 use std::env;
 
-mod psos {
-    pub mod types;
-    pub mod user;
+pub mod power;
+pub mod user;
+
+pub type Callback = fn();
+
+pub struct User {
+    pub username: String,
+    pub password: String,
+    pub full_name: String,
+    pub email: String,
+    pub gpg_key_id: String,
 }
 
-// We'll use a SelectView here.
-//
-// A SelectView is a scrollable list of items, from which the user can select
-// one.
+pub struct InstallState {
+    pub timezone: String,
+    pub keyboard_layout: String,
+    pub hostname: String,
+    pub user: User,
+}
 
 fn main() {
-    let mut siv = cursive::default();
-    siv.add_global_callback('q', |s| s.quit());
-    siv.add_layer(
-        Dialog::new()
-            .title("PubSolarOS")
-            .padding_lrtb(1, 1, 1, 1)
-            .content(TextView::new("loading")),
-    );
-    siv.run();
+    let state = crate::InstallState {
+        timezone: "".to_string(),
+        keyboard_layout: "".to_string(),
+        hostname: "".to_string(),
+        user: crate::User {
+            username: "".to_string(),
+            full_name: "".to_string(),
+            password: "".to_string(),
+            email: "".to_string(),
+            gpg_key_id: "".to_string(),
+        },
+    };
 
+    let mut siv = cursive::default();
+    siv.set_user_data(state);
+    siv.add_global_callback('q', |s| s.quit());
     let args: Vec<String> = env::args().collect();
-    if args[0] == "--skip-guided" {
+    if args.len() > 1 && args[1] == "--skip-guided" {
         show_main_menu(&mut siv);
     } else {
         run_guided_install(&mut siv);
     }
+    siv.run();
 }
 
 fn run_guided_install(siv: &mut Cursive) {}
 
-fn show_main_menu(siv: &mut Cursive) {
+pub fn show_main_menu(siv: &mut Cursive) {
     let mut select = SelectView::new()
         // Center the text horizontally
-        .h_align(HAlign::Center)
+        .h_align(HAlign::Left)
         // Use keyboard to jump to the pressed letters
         .autojump();
 
@@ -52,11 +69,11 @@ fn show_main_menu(siv: &mut Cursive) {
     // TODO: Check if /etc/nixos is setup and valid
     // TODO: Check if /nix/store is setup and valid
     // TODO: All optional steps are only optional if you set --skip-forced?
-    let content = [crate::psos::user::TITLE, ""].join("\n");
+    let content = [crate::user::TITLE, "", crate::power::TITLE].join("\n");
     select.add_all_str(content.lines());
 
     // Sets the callback for when "Enter" is pressed.
-    select.set_on_submit(|siv: &mut Cursive, title: &str| execute_selection(&mut siv, &mut title));
+    select.set_on_submit(|siv: &mut Cursive, title: &str| execute_selection(siv, title));
 
     // Let's override the `j` and `k` keys for navigation
     let select = OnEventView::new(select)
@@ -86,15 +103,15 @@ fn show_main_menu(siv: &mut Cursive) {
 // Let's put the callback in a separate function to keep it clean,
 // but it's not required.
 fn execute_selection(siv: &mut Cursive, title: &str) {
-    if title == "" {
-        return;
-    }
-
     siv.pop_layer();
 
     match title {
-        crate::psos::user::TITLE => {
-            crate::psos::user::setup(&mut siv);
+        crate::user::TITLE => {
+            crate::user::setup(siv);
         }
+        crate::power::TITLE => {
+            crate::power::reboot(siv);
+        }
+        _ => {}
     }
 }
